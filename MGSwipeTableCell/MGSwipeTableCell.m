@@ -1227,6 +1227,35 @@ static inline CGFloat mgEaseInOutBounce(CGFloat t, CGFloat b, CGFloat c) {
     }
 }
 
+- (void)expandSwipe:(MGSwipeDirection)direction autoHide:(BOOL)autoHide animated:(BOOL)animated completion:(void (^)(BOOL))completion
+{
+    CGFloat s = direction == MGSwipeDirectionLeftToRight ? 1.0 : -1.0;
+    MGSwipeExpansionSettings* expSetting = direction == MGSwipeDirectionLeftToRight ? _leftExpansion : _rightExpansion;
+    
+    // only perform animation if there's no pending expansion animation and requested direction has fillOnTrigger enabled
+    if(!_activeExpansion && expSetting.fillOnTrigger) {
+        [self createSwipeViewIfNeeded];
+        _allowSwipeLeftToRight = _leftButtons.count > 0;
+        _allowSwipeRightToLeft = _rightButtons.count > 0;
+        UIView * buttonsView = direction == MGSwipeDirectionLeftToRight ? _leftView : _rightView;
+        
+        if (buttonsView) {
+            __weak MGSwipeButtonsView * expansionView = direction == MGSwipeDirectionLeftToRight ? _leftView : _rightView;
+            __weak MGSwipeTableCell * weakself = self;
+            [self setSwipeOffset:buttonsView.bounds.size.width * s * expSetting.threshold * 2 animation:expSetting.triggerAnimation completion:^(BOOL finished){
+                if (autoHide) {
+                    [expansionView endExpansionAnimated:YES];
+                    [weakself setSwipeOffset:0 animated:NO completion:completion];
+                } else {
+                    if (completion) {
+                        completion(YES);
+                    }
+                }
+            }];
+        }
+    }
+}
+    
 -(void) animationTick: (CADisplayLink *) timer
 {
     if (!_animationData.start) {
